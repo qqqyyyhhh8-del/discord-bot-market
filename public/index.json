@@ -1,7 +1,9 @@
 {
   "version": 1,
   "title": "Discord Bot Plugin Market",
+  "title_zh": "Discord Bot 插件市场",
   "description": "Static plugin directory for the Discord Go Bot host. It stores GitHub plugin metadata only, so the website and the bot can read the same index.",
+  "description_zh": "面向 Discord Bot 宿主的静态插件目录。它只存放 GitHub 插件元数据，因此网页和 bot 可以读取同一份市场索引。",
   "site_url": "https://qqqyyyhhh8-del.github.io/discord-bot-market/",
   "index_url": "https://qqqyyyhhh8-del.github.io/discord-bot-market/index.json",
   "submit_url": "https://github.com/qqqyyyhhh8-del/discord-bot-market/issues/new?template=plugin-submission.yml",
@@ -10,7 +12,9 @@
     {
       "id": "official_persona",
       "name": "Official Persona Plugin",
+      "name_zh": "官方人设插件",
       "description": "Official persona management plugin with prompt injection.",
+      "description_zh": "官方人设管理插件，负责提示词注入与人设面板。",
       "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
       "ref": "main",
       "path": "plugins/persona",
@@ -33,7 +37,9 @@
     {
       "id": "official_proactive",
       "name": "Official Proactive Plugin",
+      "name_zh": "官方主动回复插件",
       "description": "Official proactive reply plugin with probability control panel.",
+      "description_zh": "官方主动回复插件，提供概率控制与管理面板。",
       "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
       "ref": "main",
       "path": "plugins/proactive",
@@ -57,7 +63,9 @@
     {
       "id": "official_emoji",
       "name": "Official Emoji Plugin",
+      "name_zh": "官方表情分析插件",
       "description": "Official guild emoji analysis plugin with worldbook updates.",
+      "description_zh": "官方服务器表情分析插件，会把总结增量写入世界书。",
       "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
       "ref": "main",
       "path": "plugins/emoji",
@@ -84,7 +92,9 @@
     {
       "id": "style_note",
       "name": "Style Note Plugin",
+      "name_zh": "风格备注样例插件",
       "description": "Example plugin that stores a style note and injects it into the prompt pipeline.",
+      "description_zh": "用于演示的样例插件，会保存一条风格备注并注入到提示词管线中。",
       "repo": "https://github.com/qqqyyyhhh8-del/discord-.git",
       "ref": "main",
       "path": "examples/plugins/style-note",
@@ -105,4 +115,3 @@
     }
   ]
 }
-

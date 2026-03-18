@@ -1,8 +1,306 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MarketHeader from './components/MarketHeader.vue'
 import MarketplaceToolbar from './components/MarketplaceToolbar.vue'
 import PluginGrid from './components/PluginGrid.vue'
+import SidebarNav from './components/SidebarNav.vue'
+
+const viewIDs = ['overview', 'plugins', 'integration', 'submit']
+
+const translations = {
+  'zh-CN': {
+    siteName: 'Discord Bot 插件市场',
+    pageTitle: '插件市场',
+    hero: {
+      eyebrow: 'Discord Bot Plugin Market',
+      titleFallback: 'Git 驱动的插件市场。',
+      descriptionFallback: '同一份插件索引，同时服务网页目录和 bot 的 /plugin 面板。',
+      muted: '默认中文，支持中英切换。左侧侧边栏负责语言和页面导航，右侧内容按页面拆分展示。',
+      submit: '提交插件',
+      openPages: '打开站点',
+      viewIndex: '查看 index.json',
+      readable: 'Bot 可读取',
+      updatedPrefix: '更新时间',
+      hostWiring: 'Bot 配置',
+      stats: {
+        total: '插件数',
+        official: '官方',
+        verified: '已验证',
+        tags: '标签数',
+      },
+    },
+    sidebar: {
+      label: '侧边导航',
+      language: '语言',
+      pages: '页面',
+      links: '外链',
+      rawIndex: '原始索引',
+      siteHome: '站点主页',
+      submit: '提交入口',
+      updated: '最后更新',
+      viewLabels: {
+        overview: { title: '市场总览', note: '站点与索引结构' },
+        plugins: { title: '插件目录', note: '搜索和筛选插件' },
+        integration: { title: 'Bot 接入', note: '环境变量与安装方式' },
+        submit: { title: '上架流程', note: '如何提交到市场' },
+      },
+    },
+    toolbar: {
+      eyebrow: '插件目录',
+      title: '按宿主可安装的维度筛选插件。',
+      note: '可以按名称、作者、标签、能力、最低宿主版本或插件 ID 搜索。',
+      search: '搜索',
+      filterAria: '插件筛选',
+      placeholder: 'persona、worldbook、plugin.storage...',
+      shown: '显示',
+      indexed: '已收录',
+      filters: {
+        all: '全部',
+        official: '官方',
+        verified: '已验证',
+      },
+    },
+    grid: {
+      loadingEyebrow: '读取中',
+      loadingTitle: '正在加载插件索引...',
+      loadingText: '站点正在读取共享的静态 JSON 索引。',
+      errorEyebrow: '读取失败',
+      errorTitle: '市场索引加载失败。',
+      emptyEyebrow: '无结果',
+      emptyTitle: '当前筛选没有匹配插件。',
+      emptyText: '尝试更宽的关键字，或切回全部列表。',
+    },
+    card: {
+      official: '官方',
+      verified: '已验证',
+      author: '作者',
+      minHost: '最低宿主',
+      repo: '仓库',
+      ref: 'Ref',
+      path: '路径',
+      unknown: '未知',
+      copy: '复制安装字段',
+      open: '打开源码',
+    },
+    toast: {
+      copySuccess: (name) => `已复制 ${name} 的安装字段。`,
+      copyFail: (name) => `复制 ${name} 的安装字段失败。`,
+    },
+    overview: {
+      eyebrow: '市场总览',
+      title: '一个 JSON 索引，连接两个入口。',
+      body: 'GitHub Pages 负责展示和分发静态 index.json，bot 通过同一个地址读取市场摘要，在 /plugin 面板里显示预览和外链。',
+      sections: {
+        interopEyebrow: 'Bot 联动',
+        interopTitle: '网页和 bot 共用同一份索引。',
+        interopBody: '市场不负责托管二进制或插件包，只记录 GitHub 地址、Ref、路径与元数据。这样网页展示和 bot 安装入口都能以 Git 为准。',
+        structureEyebrow: '结构设计',
+        structureTitle: '侧边栏做导航，内容区按页面拆分。',
+        structureBody: '现在站点默认中文，支持中英切换；左侧侧边栏集中放语言与页面导航，右侧内容区拆成总览、插件目录、Bot 接入、上架流程四页。',
+        previewEyebrow: '当前预览',
+        previewTitle: '市场中最先看到的插件。',
+        previewBody: '默认优先显示官方与已验证插件，便于管理员快速识别可直接接入的扩展。',
+        previewMore: '更多插件请切到“插件目录”。',
+        trustEyebrow: '分发原则',
+        trustTitle: '站点只负责索引，不接管安装权。',
+        trustBody: '真正的安装仍然发生在 bot 的插件管理面板里，由超级管理员决定是否安装、升级或移除。',
+      },
+    },
+    integration: {
+      eyebrow: 'Bot 接入',
+      title: '把市场接到宿主里，只需要一条环境变量。',
+      body: '宿主读取 `PLUGIN_MARKET_INDEX_URL` 后，/plugin 面板会显示市场概览和市场入口按钮。网页上的插件卡片则负责把 repo/ref/path 直接展示给管理员。',
+      envTitle: '环境变量',
+      envBody: '把下面这一行写进 bot 的 `.env`。',
+      installTitle: '管理员的安装动作',
+      installSteps: [
+        '在网页里找到插件，复制安装字段。',
+        '进入 bot 的 `/plugin` 管理面板。',
+        '点击“安装”，把 repo / ref / path 粘进去。',
+        '安装完成后由宿主刷新 Slash 命令和能力检查。',
+      ],
+      limitsTitle: '职责边界',
+      limitsItems: [
+        '市场只存 GitHub 链接和元数据，不保存插件打包文件。',
+        '插件是否允许安装、能否启用，最终仍由宿主决定。',
+        '能力权限依旧由 bot 宿主做校验，不下放给网页。',
+      ],
+      links: {
+        rawIndex: '查看原始索引',
+        submit: '打开提交入口',
+      },
+    },
+    submit: {
+      eyebrow: '上架流程',
+      title: 'GitHub Pages 没有后端，所以提交流程必须可审计。',
+      body: '最稳妥的做法是：任何人都可以提交插件元数据，但写入 `public/index.json` 的动作仍然通过仓库审查完成。',
+      flowTitle: '提交流程',
+      flow: [
+        '先把插件发布到公开的 GitHub 仓库。',
+        '打开市场仓库里的 Plugin Submission 表单。',
+        '填写 repo、ref、path、能力、标签、最低宿主版本等信息。',
+        '维护者审核后，把条目加入 `public/index.json`。',
+        'GitHub Pages 自动部署，网页和 bot 同时读取到新条目。',
+      ],
+      rulesTitle: '建议规则',
+      rules: [
+        '优先填写稳定分支或发布 tag，不建议直接写临时开发分支。',
+        '`path` 应该精确指向插件目录，而不是整个 monorepo 根目录。',
+        '能力声明要尽量准确，避免管理员误判插件风险。',
+      ],
+      actions: {
+        submit: '打开提交流程',
+        repo: '打开市场仓库',
+      },
+    },
+  },
+  en: {
+    siteName: 'Discord Bot Plugin Market',
+    pageTitle: 'Plugin Market',
+    hero: {
+      eyebrow: 'Discord Bot Plugin Market',
+      titleFallback: 'A Git-powered plugin market.',
+      descriptionFallback: 'One shared plugin index for both the website and the bot /plugin panel.',
+      muted: 'Chinese is the default language. A sidebar now controls language and page navigation, while the content area is split into dedicated views.',
+      submit: 'Submit Plugin',
+      openPages: 'Open Pages',
+      viewIndex: 'View index.json',
+      readable: 'Readable by bot',
+      updatedPrefix: 'Updated',
+      hostWiring: 'Bot wiring',
+      stats: {
+        total: 'Plugins',
+        official: 'Official',
+        verified: 'Verified',
+        tags: 'Tags',
+      },
+    },
+    sidebar: {
+      label: 'Sidebar',
+      language: 'Language',
+      pages: 'Pages',
+      links: 'Links',
+      rawIndex: 'Raw index',
+      siteHome: 'Site home',
+      submit: 'Submit form',
+      updated: 'Updated',
+      viewLabels: {
+        overview: { title: 'Overview', note: 'Site and index structure' },
+        plugins: { title: 'Plugins', note: 'Search and filter catalog' },
+        integration: { title: 'Bot Integration', note: 'Env var and install flow' },
+        submit: { title: 'Submission', note: 'How entries reach the market' },
+      },
+    },
+    toolbar: {
+      eyebrow: 'Plugin Directory',
+      title: 'Filter plugins by what the host can actually install.',
+      note: 'Search by name, author, tag, capability, minimum host version, or plugin ID.',
+      search: 'Search',
+      filterAria: 'Plugin filters',
+      placeholder: 'persona, worldbook, plugin.storage...',
+      shown: 'shown',
+      indexed: 'indexed',
+      filters: {
+        all: 'All',
+        official: 'Official',
+        verified: 'Verified',
+      },
+    },
+    grid: {
+      loadingEyebrow: 'Loading',
+      loadingTitle: 'Fetching plugin index...',
+      loadingText: 'The site is reading the shared static JSON index.',
+      errorEyebrow: 'Read Failed',
+      errorTitle: 'Could not load the market index.',
+      emptyEyebrow: 'No Match',
+      emptyTitle: 'No plugin matches the current filter.',
+      emptyText: 'Try a wider search term or switch back to the full list.',
+    },
+    card: {
+      official: 'Official',
+      verified: 'Verified',
+      author: 'Author',
+      minHost: 'Min host',
+      repo: 'Repo',
+      ref: 'Ref',
+      path: 'Path',
+      unknown: 'Unknown',
+      copy: 'Copy install fields',
+      open: 'Open source',
+    },
+    toast: {
+      copySuccess: (name) => `Copied install fields for ${name}.`,
+      copyFail: (name) => `Clipboard failed for ${name}.`,
+    },
+    overview: {
+      eyebrow: 'Overview',
+      title: 'One JSON index, two entry points.',
+      body: 'GitHub Pages renders and serves the static index.json, while the bot reads the same URL to preview the market inside /plugin.',
+      sections: {
+        interopEyebrow: 'Bot Interop',
+        interopTitle: 'The website and the bot read the same index.',
+        interopBody: 'The market stores GitHub URLs, refs, paths, and metadata only. That keeps the web catalog and the bot install surface aligned around Git.',
+        structureEyebrow: 'Structure',
+        structureTitle: 'Sidebar navigation, split content views.',
+        structureBody: 'The site now defaults to Chinese, supports language switching, and separates content into Overview, Plugins, Bot Integration, and Submission pages.',
+        previewEyebrow: 'Preview',
+        previewTitle: 'The first plugins the admin will see.',
+        previewBody: 'Official and verified entries stay front-loaded so admins can identify safer extensions quickly.',
+        previewMore: 'Switch to "Plugins" for the full catalog.',
+        trustEyebrow: 'Distribution Policy',
+        trustTitle: 'The site indexes plugins but does not install them.',
+        trustBody: 'Actual installation still happens inside the bot plugin panel, controlled by the host and super admins.',
+      },
+    },
+    integration: {
+      eyebrow: 'Bot Integration',
+      title: 'Wiring the market into the host takes one env var.',
+      body: 'Once the host reads `PLUGIN_MARKET_INDEX_URL`, the /plugin panel can show market summary plus external market links. The website cards expose repo/ref/path for admins to paste.',
+      envTitle: 'Environment variable',
+      envBody: 'Write this into the bot `.env` file.',
+      installTitle: 'What the admin does',
+      installSteps: [
+        'Find a plugin on the site and copy its install fields.',
+        'Open the bot `/plugin` management panel.',
+        'Click Install and paste repo / ref / path.',
+        'Let the host refresh slash commands and capability checks.',
+      ],
+      limitsTitle: 'Responsibility split',
+      limitsItems: [
+        'The market stores GitHub links and metadata only, not packaged plugin files.',
+        'The host still decides whether a plugin can be installed or enabled.',
+        'Capability enforcement remains on the bot side, not the website.',
+      ],
+      links: {
+        rawIndex: 'Open raw index',
+        submit: 'Open submission form',
+      },
+    },
+    submit: {
+      eyebrow: 'Submission',
+      title: 'GitHub Pages has no backend, so the flow must stay reviewable.',
+      body: 'The practical model is open submission plus repository review. Anyone can propose metadata, but `public/index.json` changes still land through Git review.',
+      flowTitle: 'Submission flow',
+      flow: [
+        'Publish the plugin in a public GitHub repository.',
+        'Open the Plugin Submission form in the market repo.',
+        'Fill repo, ref, path, capabilities, tags, and minimum host version.',
+        'After review, a maintainer adds the entry to `public/index.json`.',
+        'GitHub Pages deploys and both the website and the bot read the new entry.',
+      ],
+      rulesTitle: 'Recommended rules',
+      rules: [
+        'Prefer stable branches or tags over temporary development refs.',
+        'Point `path` at the actual plugin directory, not the monorepo root.',
+        'Declare capabilities accurately so admins can assess plugin risk.',
+      ],
+      actions: {
+        submit: 'Open submission form',
+        repo: 'Open market repo',
+      },
+    },
+  },
+}
 
 const marketIndex = ref(null)
 const loading = ref(true)
@@ -10,9 +308,23 @@ const loadError = ref('')
 const search = ref('')
 const filter = ref('all')
 const toast = ref('')
+const locale = ref('zh-CN')
+const currentView = ref(resolveHashView())
 let toastTimer = null
 
+const copy = computed(() => translations[locale.value] ?? translations['zh-CN'])
+
+const navItems = computed(() =>
+  viewIDs.map((id) => ({
+    id,
+    title: copy.value.sidebar.viewLabels[id].title,
+    note: copy.value.sidebar.viewLabels[id].note,
+  })),
+)
+
 const allPlugins = computed(() => marketIndex.value?.plugins ?? [])
+const previewPlugins = computed(() => allPlugins.value.slice(0, 3))
+const marketRepoURL = computed(() => 'https://github.com/qqqyyyhhh8-del/discord-bot-market')
 const stats = computed(() => {
   const plugins = allPlugins.value
   const tags = new Set()
@@ -41,16 +353,30 @@ const siteUrl = computed(() => marketIndex.value?.site_url?.trim() ?? '')
 const updatedLabel = computed(() => {
   const value = marketIndex.value?.updated_at?.trim()
   if (!value) {
-    return 'Unknown'
+    return locale.value === 'zh-CN' ? '未知' : 'Unknown'
   }
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
     return value
   }
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale.value === 'zh-CN' ? 'zh-CN' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(parsed)
+})
+
+const heroTitle = computed(() => {
+  if (locale.value === 'zh-CN') {
+    return localizedIndexValue(marketIndex.value, 'title') || copy.value.hero.titleFallback
+  }
+  return marketIndex.value?.title?.trim() || copy.value.hero.titleFallback
+})
+
+const heroDescription = computed(() => {
+  if (locale.value === 'zh-CN') {
+    return localizedIndexValue(marketIndex.value, 'description') || copy.value.hero.descriptionFallback
+  }
+  return marketIndex.value?.description?.trim() || copy.value.hero.descriptionFallback
 })
 
 const filteredPlugins = computed(() => {
@@ -68,17 +394,66 @@ const filteredPlugins = computed(() => {
     const haystack = [
       plugin.id,
       plugin.name,
+      plugin.name_zh,
       plugin.description,
+      plugin.description_zh,
       plugin.author,
       plugin.min_host_version,
       ...(plugin.tags ?? []),
       ...(plugin.capabilities ?? []),
     ]
+      .filter(Boolean)
       .join(' ')
       .toLowerCase()
     return haystack.includes(keyword)
   })
 })
+
+function localizedIndexValue(target, key) {
+  if (!target || locale.value !== 'zh-CN') {
+    return ''
+  }
+  const localized = target[`${key}_zh`]
+  return typeof localized === 'string' ? localized.trim() : ''
+}
+
+function resolveHashView() {
+  if (typeof window === 'undefined') {
+    return 'overview'
+  }
+  const hash = window.location.hash.replace(/^#/, '').trim()
+  return viewIDs.includes(hash) ? hash : 'overview'
+}
+
+function syncDocumentMeta() {
+  if (typeof document === 'undefined') {
+    return
+  }
+  document.documentElement.lang = locale.value === 'zh-CN' ? 'zh-CN' : 'en'
+  const viewTitle = copy.value.sidebar.viewLabels[currentView.value]?.title || copy.value.pageTitle
+  document.title = `${copy.value.siteName} · ${viewTitle}`
+}
+
+function setView(viewID) {
+  if (!viewIDs.includes(viewID)) {
+    return
+  }
+  currentView.value = viewID
+  if (typeof window !== 'undefined' && window.location.hash !== `#${viewID}`) {
+    window.location.hash = viewID
+  }
+}
+
+function setLocale(nextLocale) {
+  if (!translations[nextLocale]) {
+    return
+  }
+  locale.value = nextLocale
+}
+
+function handleHashChange() {
+  currentView.value = resolveHashView()
+}
 
 function showToast(message) {
   if (toastTimer !== null) {
@@ -97,11 +472,14 @@ async function copyInstallPayload(plugin) {
     `ref=${plugin.ref || 'main'}`,
     `path=${plugin.path || ''}`,
   ]
+  const name = locale.value === 'zh-CN'
+    ? plugin.name_zh || plugin.name || plugin.id
+    : plugin.name || plugin.id
   try {
     await navigator.clipboard.writeText(lines.join('\n'))
-    showToast(`Copied install fields for ${plugin.name || plugin.id}.`)
+    showToast(copy.value.toast.copySuccess(name))
   } catch (error) {
-    showToast(`Clipboard failed for ${plugin.name || plugin.id}.`)
+    showToast(copy.value.toast.copyFail(name))
   }
 }
 
@@ -125,108 +503,230 @@ async function loadMarketIndex() {
 }
 
 onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const storedLocale = window.localStorage.getItem('market-locale')
+    if (translations[storedLocale]) {
+      locale.value = storedLocale
+    }
+    if (!window.location.hash) {
+      window.location.hash = 'overview'
+    }
+    window.addEventListener('hashchange', handleHashChange)
+  }
+  currentView.value = resolveHashView()
+  syncDocumentMeta()
   loadMarketIndex()
+})
+
+watch(locale, (value) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('market-locale', value)
+  }
+  syncDocumentMeta()
+})
+
+watch(currentView, () => {
+  syncDocumentMeta()
 })
 
 onBeforeUnmount(() => {
   if (toastTimer !== null) {
     window.clearTimeout(toastTimer)
   }
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('hashchange', handleHashChange)
+  }
 })
 </script>
 
 <template>
-  <div class="page-shell">
-    <MarketHeader
-      :market-index="marketIndex"
-      :stats="stats"
+  <div class="page-shell page-shell--sidebar">
+    <SidebarNav
+      :copy="copy"
+      :locale="locale"
+      :nav-items="navItems"
+      :current-view="currentView"
       :updated-label="updatedLabel"
-      :submit-url="submitUrl"
       :site-url="siteUrl"
+      :submit-url="submitUrl"
       :raw-index-url="rawIndexUrl"
+      @set-view="setView"
+      @set-locale="setLocale"
     />
 
-    <main class="page-main">
-      <section class="content-column">
-        <MarketplaceToolbar
-          v-model:search="search"
-          v-model:filter="filter"
-          :results="filteredPlugins.length"
-          :total="allPlugins.length"
-        />
-        <PluginGrid
-          :plugins="filteredPlugins"
-          :loading="loading"
-          :load-error="loadError"
-          @copy-install="copyInstallPayload"
-        />
-      </section>
+    <div class="surface-shell">
+      <MarketHeader
+        :copy="copy.hero"
+        :title="heroTitle"
+        :description="heroDescription"
+        :stats="stats"
+        :submit-url="submitUrl"
+        :site-url="siteUrl"
+        :raw-index-url="rawIndexUrl"
+        :updated-label="updatedLabel"
+      />
 
-      <aside class="side-column">
-        <section class="side-card side-card--inverse">
-          <p class="eyebrow">Bot Interop</p>
-          <h2>One JSON index, two surfaces.</h2>
-          <p class="side-card__text">
-            GitHub Pages serves a static <code>index.json</code>. The bot reads the same file through
-            <code>PLUGIN_MARKET_INDEX_URL</code>, so the web catalog and the <code>/plugin</code> panel stay aligned.
-          </p>
-          <div class="code-block">
-            <code>PLUGIN_MARKET_INDEX_URL={{ rawIndexUrl }}</code>
+      <main class="content-stack">
+        <section v-if="currentView === 'overview'" class="page-stack">
+          <section class="section-intro">
+            <p class="eyebrow">{{ copy.overview.eyebrow }}</p>
+            <h2>{{ copy.overview.title }}</h2>
+            <p class="section-intro__text">{{ copy.overview.body }}</p>
+          </section>
+
+          <div class="page-grid page-grid--two">
+            <section class="side-card side-card--inverse">
+              <p class="eyebrow">{{ copy.overview.sections.interopEyebrow }}</p>
+              <h2>{{ copy.overview.sections.interopTitle }}</h2>
+              <p class="side-card__text">{{ copy.overview.sections.interopBody }}</p>
+              <div class="code-block">
+                <code>PLUGIN_MARKET_INDEX_URL={{ rawIndexUrl }}</code>
+              </div>
+            </section>
+
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.overview.sections.structureEyebrow }}</p>
+              <h2>{{ copy.overview.sections.structureTitle }}</h2>
+              <p class="side-card__text">{{ copy.overview.sections.structureBody }}</p>
+            </section>
+
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.overview.sections.previewEyebrow }}</p>
+              <h2>{{ copy.overview.sections.previewTitle }}</h2>
+              <p class="side-card__text">{{ copy.overview.sections.previewBody }}</p>
+              <ul class="bullet-list bullet-list--tight">
+                <li v-for="plugin in previewPlugins" :key="plugin.id">
+                  {{ locale === 'zh-CN' ? (plugin.name_zh || plugin.name || plugin.id) : (plugin.name || plugin.id) }}
+                </li>
+              </ul>
+              <p class="side-card__text side-card__text--minor">{{ copy.overview.sections.previewMore }}</p>
+            </section>
+
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.overview.sections.trustEyebrow }}</p>
+              <h2>{{ copy.overview.sections.trustTitle }}</h2>
+              <p class="side-card__text">{{ copy.overview.sections.trustBody }}</p>
+            </section>
           </div>
-          <div class="link-row">
-            <a class="ghost-link ghost-link--light" :href="rawIndexUrl" target="_blank" rel="noreferrer">
-              Raw index
-            </a>
-            <a
-              v-if="siteUrl"
-              class="ghost-link ghost-link--light"
-              :href="siteUrl"
-              target="_blank"
-              rel="noreferrer"
-            >
-              GitHub Pages
-            </a>
+        </section>
+
+        <section v-else-if="currentView === 'plugins'" class="page-stack">
+          <MarketplaceToolbar
+            v-model:search="search"
+            v-model:filter="filter"
+            :results="filteredPlugins.length"
+            :total="allPlugins.length"
+            :copy="copy.toolbar"
+          />
+          <PluginGrid
+            :plugins="filteredPlugins"
+            :loading="loading"
+            :load-error="loadError"
+            :copy="copy.grid"
+            :card-copy="copy.card"
+            :locale="locale"
+            @copy-install="copyInstallPayload"
+          />
+        </section>
+
+        <section v-else-if="currentView === 'integration'" class="page-stack">
+          <section class="section-intro">
+            <p class="eyebrow">{{ copy.integration.eyebrow }}</p>
+            <h2>{{ copy.integration.title }}</h2>
+            <p class="section-intro__text">{{ copy.integration.body }}</p>
+          </section>
+
+          <div class="page-grid page-grid--two">
+            <section class="side-card side-card--inverse">
+              <p class="eyebrow">{{ copy.integration.envTitle }}</p>
+              <h2>{{ copy.integration.envTitle }}</h2>
+              <p class="side-card__text">{{ copy.integration.envBody }}</p>
+              <div class="code-block">
+                <code>PLUGIN_MARKET_INDEX_URL={{ rawIndexUrl }}</code>
+              </div>
+              <div class="link-row">
+                <a class="ghost-link ghost-link--light" :href="rawIndexUrl" target="_blank" rel="noreferrer">
+                  {{ copy.integration.links.rawIndex }}
+                </a>
+                <a
+                  v-if="submitUrl"
+                  class="ghost-link ghost-link--light"
+                  :href="submitUrl"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {{ copy.integration.links.submit }}
+                </a>
+              </div>
+            </section>
+
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.integration.installTitle }}</p>
+              <h2>{{ copy.integration.installTitle }}</h2>
+              <ol class="steps-list">
+                <li v-for="step in copy.integration.installSteps" :key="step">{{ step }}</li>
+              </ol>
+            </section>
+
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.integration.limitsTitle }}</p>
+              <h2>{{ copy.integration.limitsTitle }}</h2>
+              <ul class="bullet-list">
+                <li v-for="item in copy.integration.limitsItems" :key="item">{{ item }}</li>
+              </ul>
+            </section>
           </div>
         </section>
 
-        <section class="side-card">
-          <p class="eyebrow">Submit Flow</p>
-          <h2>No backend. No mystery.</h2>
-          <ol class="steps-list">
-            <li>Publish your plugin in a GitHub repository.</li>
-            <li>Open the market submission form with repo, ref, path, and metadata.</li>
-            <li>After review, the entry lands in <code>public/index.json</code> and becomes visible to both web and bot.</li>
-          </ol>
-          <a
-            v-if="submitUrl"
-            class="ghost-link"
-            :href="submitUrl"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Submit a plugin
-          </a>
-        </section>
+        <section v-else class="page-stack">
+          <section class="section-intro">
+            <p class="eyebrow">{{ copy.submit.eyebrow }}</p>
+            <h2>{{ copy.submit.title }}</h2>
+            <p class="section-intro__text">{{ copy.submit.body }}</p>
+          </section>
 
-        <section class="side-card">
-          <p class="eyebrow">Host Install</p>
-          <h2>What the admin pastes into the bot.</h2>
-          <p class="side-card__text">
-            Every card exposes the Git repo, ref, and path values required by the host install modal.
-            The market stores links and metadata only. Actual installation still comes from Git.
-          </p>
-          <ul class="bullet-list">
-            <li>Super admins install or upgrade plugins in the bot panel.</li>
-            <li>Admins browse the market, preview capabilities, and copy install fields.</li>
-            <li>The host keeps command registration and capability checks on its own side.</li>
-          </ul>
+          <div class="page-grid page-grid--two">
+            <section class="side-card">
+              <p class="eyebrow">{{ copy.submit.flowTitle }}</p>
+              <h2>{{ copy.submit.flowTitle }}</h2>
+              <ol class="steps-list">
+                <li v-for="step in copy.submit.flow" :key="step">{{ step }}</li>
+              </ol>
+            </section>
+
+            <section class="side-card side-card--inverse">
+              <p class="eyebrow">{{ copy.submit.rulesTitle }}</p>
+              <h2>{{ copy.submit.rulesTitle }}</h2>
+              <ul class="bullet-list bullet-list--light">
+                <li v-for="item in copy.submit.rules" :key="item">{{ item }}</li>
+              </ul>
+              <div class="link-row">
+                <a
+                  v-if="submitUrl"
+                  class="ghost-link ghost-link--light"
+                  :href="submitUrl"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {{ copy.submit.actions.submit }}
+                </a>
+                <a
+                  class="ghost-link ghost-link--light"
+                  :href="marketRepoURL"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {{ copy.submit.actions.repo }}
+                </a>
+              </div>
+            </section>
+          </div>
         </section>
-      </aside>
-    </main>
+      </main>
+    </div>
 
     <transition name="toast-fade">
       <div v-if="toast" class="toast">{{ toast }}</div>
     </transition>
   </div>
 </template>
-

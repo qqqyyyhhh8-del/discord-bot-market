@@ -1,5 +1,9 @@
 <script setup>
 const props = defineProps({
+  copy: {
+    type: Object,
+    required: true,
+  },
   search: {
     type: String,
     default: '',
@@ -20,52 +24,45 @@ const props = defineProps({
 
 const emit = defineEmits(['update:search', 'update:filter'])
 
-const filterOptions = [
-  { value: 'all', label: 'All' },
-  { value: 'official', label: 'Official' },
-  { value: 'verified', label: 'Verified' },
-]
+const filterOptions = ['all', 'official', 'verified']
 </script>
 
 <template>
   <section class="toolbar-card">
     <div class="toolbar-copy">
-      <p class="eyebrow">Directory</p>
-      <h2>Filter what the host can install from Git.</h2>
-      <p class="toolbar-note">
-        Search by name, author, tag, capability, host version, or plugin ID.
-      </p>
+      <p class="eyebrow">{{ props.copy.eyebrow }}</p>
+      <h2>{{ props.copy.title }}</h2>
+      <p class="toolbar-note">{{ props.copy.note }}</p>
     </div>
 
     <div class="toolbar-controls">
       <label class="search-field">
-        <span>Search</span>
+        <span>{{ props.copy.search }}</span>
         <input
           :value="props.search"
           type="search"
-          placeholder="official, worldbook, plugin.storage..."
+          :placeholder="props.copy.placeholder"
           @input="emit('update:search', $event.target.value)"
         />
       </label>
 
-      <div class="filter-pills" role="tablist" aria-label="Plugin filters">
+      <div class="filter-pills" role="tablist" :aria-label="props.copy.filterAria">
         <button
           v-for="option in filterOptions"
-          :key="option.value"
+          :key="option"
           type="button"
           class="filter-pill"
-          :class="{ 'filter-pill--active': props.filter === option.value }"
-          @click="emit('update:filter', option.value)"
+          :class="{ 'filter-pill--active': props.filter === option }"
+          @click="emit('update:filter', option)"
         >
-          {{ option.label }}
+          {{ props.copy.filters[option] }}
         </button>
       </div>
     </div>
 
     <div class="toolbar-results">
-      <span>{{ props.results }} shown</span>
-      <span>{{ props.total }} indexed</span>
+      <span>{{ props.results }} {{ props.copy.shown }}</span>
+      <span>{{ props.total }} {{ props.copy.indexed }}</span>
     </div>
   </section>
 </template>
-

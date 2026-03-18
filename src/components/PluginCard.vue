@@ -1,5 +1,13 @@
 <script setup>
 const props = defineProps({
+  copy: {
+    type: Object,
+    required: true,
+  },
+  locale: {
+    type: String,
+    required: true,
+  },
   plugin: {
     type: Object,
     required: true,
@@ -14,35 +22,37 @@ const emit = defineEmits(['copy-install'])
     <div class="plugin-card__header">
       <div>
         <p class="plugin-card__id">{{ props.plugin.id }}</p>
-        <h3>{{ props.plugin.name }}</h3>
+        <h3>{{ props.locale === 'zh-CN' ? (props.plugin.name_zh || props.plugin.name) : props.plugin.name }}</h3>
       </div>
       <div class="badge-row">
-        <span v-if="props.plugin.official" class="badge badge--dark">Official</span>
-        <span v-if="props.plugin.verified" class="badge">Verified</span>
+        <span v-if="props.plugin.official" class="badge badge--dark">{{ props.copy.official }}</span>
+        <span v-if="props.plugin.verified" class="badge">{{ props.copy.verified }}</span>
       </div>
     </div>
 
-    <p class="plugin-card__description">{{ props.plugin.description }}</p>
+    <p class="plugin-card__description">
+      {{ props.locale === 'zh-CN' ? (props.plugin.description_zh || props.plugin.description) : props.plugin.description }}
+    </p>
 
     <dl class="meta-grid">
       <div class="meta-item">
-        <dt>Author</dt>
-        <dd>{{ props.plugin.author || 'Unknown' }}</dd>
+        <dt>{{ props.copy.author }}</dt>
+        <dd>{{ props.plugin.author || props.copy.unknown }}</dd>
       </div>
       <div class="meta-item">
-        <dt>Min host</dt>
-        <dd>{{ props.plugin.min_host_version || 'Unknown' }}</dd>
+        <dt>{{ props.copy.minHost }}</dt>
+        <dd>{{ props.plugin.min_host_version || props.copy.unknown }}</dd>
       </div>
       <div class="meta-item meta-item--wide">
-        <dt>Repo</dt>
+        <dt>{{ props.copy.repo }}</dt>
         <dd><code>{{ props.plugin.repo }}</code></dd>
       </div>
       <div class="meta-item">
-        <dt>Ref</dt>
+        <dt>{{ props.copy.ref }}</dt>
         <dd><code>{{ props.plugin.ref || 'main' }}</code></dd>
       </div>
       <div class="meta-item">
-        <dt>Path</dt>
+        <dt>{{ props.copy.path }}</dt>
         <dd><code>{{ props.plugin.path || '.' }}</code></dd>
       </div>
     </dl>
@@ -63,7 +73,7 @@ const emit = defineEmits(['copy-install'])
 
     <div class="card-footer">
       <button type="button" class="hero-button hero-button--solid" @click="emit('copy-install')">
-        Copy install fields
+        {{ props.copy.copy }}
       </button>
       <a
         class="hero-button hero-button--ghost"
@@ -71,9 +81,8 @@ const emit = defineEmits(['copy-install'])
         target="_blank"
         rel="noreferrer"
       >
-        Open source
+        {{ props.copy.open }}
       </a>
     </div>
   </article>
 </template>
-
