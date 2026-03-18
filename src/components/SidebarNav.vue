@@ -38,7 +38,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['set-view', 'set-locale', 'close'])
+const emit = defineEmits(['set-locale', 'close'])
 </script>
 
 <template>
@@ -86,17 +86,17 @@ const emit = defineEmits(['set-view', 'set-locale', 'close'])
       <section class="sidebar-group">
         <p class="sidebar-group__label">{{ props.copy.sidebar.pages }}</p>
         <nav class="sidebar-nav">
-          <button
+          <RouterLink
             v-for="item in props.navItems"
             :key="item.id"
-            type="button"
+            :to="item.to"
             class="sidebar-nav__item"
             :class="{ 'sidebar-nav__item--active': props.currentView === item.id }"
-            @click="emit('set-view', item.id)"
+            @click="emit('close')"
           >
             <span class="sidebar-nav__title">{{ item.title }}</span>
             <span class="sidebar-nav__note">{{ item.note }}</span>
-          </button>
+          </RouterLink>
         </nav>
       </section>
 

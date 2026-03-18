@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 import MarketHeader from './components/MarketHeader.vue'
 import SidebarNav from './components/SidebarNav.vue'
 
@@ -318,7 +318,6 @@ const translations = {
 }
 
 const route = useRoute()
-const router = useRouter()
 const marketIndex = ref(null)
 const loading = ref(true)
 const loadError = ref('')
@@ -333,6 +332,7 @@ const currentView = computed(() => (viewIDs.includes(String(route.name)) ? Strin
 const navItems = computed(() =>
   viewIDs.map((id) => ({
     id,
+    to: { name: id },
     title: copy.value.sidebar.viewLabels[id].title,
     note: copy.value.sidebar.viewLabels[id].note,
   })),
@@ -404,14 +404,6 @@ function syncDocumentMeta() {
   }
   document.documentElement.lang = locale.value === 'zh-CN' ? 'zh-CN' : 'en'
   document.title = `${copy.value.siteName} · ${activeViewLabel.value}`
-}
-
-function setView(viewID) {
-  if (!viewIDs.includes(viewID)) {
-    return
-  }
-  drawerOpen.value = false
-  router.push({ name: viewID })
 }
 
 function setLocale(nextLocale) {
@@ -582,7 +574,6 @@ onBeforeUnmount(() => {
         :submit-url="submitUrl"
         :raw-index-url="rawIndexUrl"
         :show-close-button="isMobile"
-        @set-view="setView"
         @set-locale="setLocale"
         @close="closeDrawer"
       />
