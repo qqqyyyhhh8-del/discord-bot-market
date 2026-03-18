@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "title": "Discord Bot Plugin Market",
+  "description": "Static plugin directory for the Discord Go Bot host. It stores GitHub plugin metadata only, so the website and the bot can read the same index.",
+  "site_url": "https://qqqyyyhhh8-del.github.io/discord-bot-market/",
+  "index_url": "https://qqqyyyhhh8-del.github.io/discord-bot-market/index.json",
+  "submit_url": "https://github.com/qqqyyyhhh8-del/discord-bot-market/issues/new?template=plugin-submission.yml",
+  "updated_at": "2026-03-18T08:04:40Z",
+  "plugins": [
+    {
+      "id": "official_persona",
+      "name": "Official Persona Plugin",
+      "description": "Official persona management plugin with prompt injection.",
+      "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
+      "ref": "main",
+      "path": "plugins/persona",
+      "author": "qqqyyyhhh8-del",
+      "homepage": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins/tree/main/plugins/persona",
+      "official": true,
+      "verified": true,
+      "min_host_version": "v0.5.0",
+      "capabilities": [
+        "discord.interaction.respond",
+        "plugin.storage"
+      ],
+      "tags": [
+        "official",
+        "panel",
+        "persona",
+        "prompt"
+      ]
+    },
+    {
+      "id": "official_proactive",
+      "name": "Official Proactive Plugin",
+      "description": "Official proactive reply plugin with probability control panel.",
+      "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
+      "ref": "main",
+      "path": "plugins/proactive",
+      "author": "qqqyyyhhh8-del",
+      "homepage": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins/tree/main/plugins/proactive",
+      "official": true,
+      "verified": true,
+      "min_host_version": "v0.5.0",
+      "capabilities": [
+        "discord.interaction.respond",
+        "discord.reply_with_core",
+        "plugin.storage"
+      ],
+      "tags": [
+        "admin",
+        "official",
+        "panel",
+        "proactive"
+      ]
+    },
+    {
+      "id": "official_emoji",
+      "name": "Official Emoji Plugin",
+      "description": "Official guild emoji analysis plugin with worldbook updates.",
+      "repo": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins.git",
+      "ref": "main",
+      "path": "plugins/emoji",
+      "author": "qqqyyyhhh8-del",
+      "homepage": "https://github.com/qqqyyyhhh8-del/discord-bot-plugins/tree/main/plugins/emoji",
+      "official": true,
+      "verified": true,
+      "min_host_version": "v0.5.0",
+      "capabilities": [
+        "discord.interaction.respond",
+        "discord.read_guild_emojis",
+        "llm.chat",
+        "plugin.storage",
+        "worldbook.read",
+        "worldbook.write"
+      ],
+      "tags": [
+        "emoji",
+        "multimodal",
+        "official",
+        "worldbook"
+      ]
+    },
+    {
+      "id": "style_note",
+      "name": "Style Note Plugin",
+      "description": "Example plugin that stores a style note and injects it into the prompt pipeline.",
+      "repo": "https://github.com/qqqyyyhhh8-del/discord-.git",
+      "ref": "main",
+      "path": "examples/plugins/style-note",
+      "author": "qqqyyyhhh8-del",
+      "homepage": "https://github.com/qqqyyyhhh8-del/discord-/tree/main/examples/plugins/style-note",
+      "official": false,
+      "verified": true,
+      "min_host_version": "v0.4.0",
+      "capabilities": [
+        "discord.interaction.respond",
+        "plugin.storage"
+      ],
+      "tags": [
+        "example",
+        "prompt",
+        "style"
+      ]
+    }
+  ]
+}
+

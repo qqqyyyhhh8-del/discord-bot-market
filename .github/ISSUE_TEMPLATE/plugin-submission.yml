@@ -1,0 +1,103 @@
+name: Plugin Submission
+description: Submit a GitHub-hosted plugin to the Discord Bot Plugin Market.
+title: "[Plugin]: "
+labels:
+  - plugin-submission
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Submit GitHub metadata only. The market does not host binaries or source archives.
+
+  - type: input
+    id: plugin_id
+    attributes:
+      label: Plugin ID
+      description: Must match the plugin manifest ID.
+      placeholder: official_persona
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Display name
+      placeholder: Official Persona Plugin
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: One short paragraph is enough.
+      placeholder: Persona management plugin with prompt injection.
+    validations:
+      required: true
+
+  - type: input
+    id: repo
+    attributes:
+      label: Git repository URL
+      placeholder: https://github.com/owner/repo.git
+    validations:
+      required: true
+
+  - type: input
+    id: ref
+    attributes:
+      label: Git ref
+      description: Branch, tag, or commit. Use main if you do not have a release tag.
+      placeholder: main
+    validations:
+      required: true
+
+  - type: input
+    id: path
+    attributes:
+      label: Plugin path inside the repository
+      placeholder: plugins/persona
+    validations:
+      required: true
+
+  - type: input
+    id: homepage
+    attributes:
+      label: Homepage or source folder URL
+      placeholder: https://github.com/owner/repo/tree/main/plugins/persona
+
+  - type: input
+    id: min_host_version
+    attributes:
+      label: Minimum host version
+      placeholder: v0.6.0
+
+  - type: textarea
+    id: capabilities
+    attributes:
+      label: Capabilities
+      description: One capability per line.
+      placeholder: |
+        plugin.storage
+        discord.interaction.respond
+
+  - type: textarea
+    id: tags
+    attributes:
+      label: Tags
+      description: One tag per line.
+      placeholder: |
+        persona
+        prompt
+        panel
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I confirm that the repository is public and installable by Git.
+          required: true
+        - label: I confirm that the metadata above is accurate.
+          required: true
+
