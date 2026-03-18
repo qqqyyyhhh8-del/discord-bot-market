@@ -189,10 +189,20 @@
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
+.drawer-fade-enter-active,
+.drawer-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+.drawer-fade-enter-from,
+.drawer-fade-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 1180px) {

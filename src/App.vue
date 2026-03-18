@@ -1,8 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import MarketHeader from './components/MarketHeader.vue'
-import MarketplaceToolbar from './components/MarketplaceToolbar.vue'
-import PluginGrid from './components/PluginGrid.vue'
 import SidebarNav from './components/SidebarNav.vue'
 
 const viewIDs = ['overview', 'plugins', 'integration', 'submit']
@@ -15,7 +14,7 @@ const translations = {
       eyebrow: 'Discord Bot Plugin Market',
       titleFallback: 'Git 驱动的插件市场。',
       descriptionFallback: '同一份插件索引，同时服务网页目录和 bot 的 /plugin 面板。',
-      muted: '默认中文，支持中英切换。左侧侧边栏负责语言和页面导航，右侧内容按页面拆分展示。',
+      muted: '默认中文，支持中英切换。左侧侧边栏负责语言和页面导航，右侧内容按独立页面分开展示。',
       submit: '提交插件',
       openPages: '打开站点',
       viewIndex: '查看 index.json',
@@ -42,7 +41,7 @@ const translations = {
       updated: '最后更新',
       viewLabels: {
         overview: { title: '市场总览', note: '站点与索引结构' },
-        plugins: { title: '插件目录', note: '搜索和筛选插件' },
+        plugins: { title: '插件目录', note: '分页浏览和筛选插件' },
         integration: { title: 'Bot 接入', note: '环境变量与安装方式' },
         submit: { title: '上架流程', note: '如何提交到市场' },
       },
@@ -84,6 +83,12 @@ const translations = {
       copy: '复制安装字段',
       open: '打开源码',
     },
+    pagination: {
+      previous: '上一页',
+      next: '下一页',
+      page: '第 {page} 页',
+      summary: '第 {current} / {total} 页',
+    },
     toast: {
       copySuccess: (name) => `已复制 ${name} 的安装字段。`,
       copyFail: (name) => `复制 ${name} 的安装字段失败。`,
@@ -97,8 +102,8 @@ const translations = {
         interopTitle: '网页和 bot 共用同一份索引。',
         interopBody: '市场不负责托管二进制或插件包，只记录 GitHub 地址、Ref、路径与元数据。这样网页展示和 bot 安装入口都能以 Git 为准。',
         structureEyebrow: '结构设计',
-        structureTitle: '侧边栏做导航，内容区按页面拆分。',
-        structureBody: '现在站点默认中文，支持中英切换；左侧侧边栏集中放语言与页面导航，右侧内容区拆成总览、插件目录、Bot 接入、上架流程四页。',
+        structureTitle: '现在是独立页面，不再是单组件假分页。',
+        structureBody: '站点已经拆成四个独立路由页面，左侧导航切换的是实际页面视图；插件目录页内部再做列表分页。',
         previewEyebrow: '当前预览',
         previewTitle: '市场中最先看到的插件。',
         previewBody: '默认优先显示官方与已验证插件，便于管理员快速识别可直接接入的扩展。',
@@ -163,7 +168,7 @@ const translations = {
       eyebrow: 'Discord Bot Plugin Market',
       titleFallback: 'A Git-powered plugin market.',
       descriptionFallback: 'One shared plugin index for both the website and the bot /plugin panel.',
-      muted: 'Chinese is the default language. A sidebar now controls language and page navigation, while the content area is split into dedicated views.',
+      muted: 'Chinese is the default language. The sidebar now switches real routed pages instead of a single-component fake split view.',
       submit: 'Submit Plugin',
       openPages: 'Open Pages',
       viewIndex: 'View index.json',
@@ -190,7 +195,7 @@ const translations = {
       updated: 'Updated',
       viewLabels: {
         overview: { title: 'Overview', note: 'Site and index structure' },
-        plugins: { title: 'Plugins', note: 'Search and filter catalog' },
+        plugins: { title: 'Plugins', note: 'Paged browsing and filters' },
         integration: { title: 'Bot Integration', note: 'Env var and install flow' },
         submit: { title: 'Submission', note: 'How entries reach the market' },
       },
@@ -232,6 +237,12 @@ const translations = {
       copy: 'Copy install fields',
       open: 'Open source',
     },
+    pagination: {
+      previous: 'Previous',
+      next: 'Next',
+      page: 'Page {page}',
+      summary: 'Page {current} / {total}',
+    },
     toast: {
       copySuccess: (name) => `Copied install fields for ${name}.`,
       copyFail: (name) => `Clipboard failed for ${name}.`,
@@ -245,8 +256,8 @@ const translations = {
         interopTitle: 'The website and the bot read the same index.',
         interopBody: 'The market stores GitHub URLs, refs, paths, and metadata only. That keeps the web catalog and the bot install surface aligned around Git.',
         structureEyebrow: 'Structure',
-        structureTitle: 'Sidebar navigation, split content views.',
-        structureBody: 'The site now defaults to Chinese, supports language switching, and separates content into Overview, Plugins, Bot Integration, and Submission pages.',
+        structureTitle: 'These are real pages now, not fake pagination.',
+        structureBody: 'The site is now split into routed pages, and the Plugins page also adds real card pagination.',
         previewEyebrow: 'Preview',
         previewTitle: 'The first plugins the admin will see.',
         previewBody: 'Official and verified entries stay front-loaded so admins can identify safer extensions quickly.',
@@ -306,20 +317,19 @@ const translations = {
   },
 }
 
+const route = useRoute()
+const router = useRouter()
 const marketIndex = ref(null)
 const loading = ref(true)
 const loadError = ref('')
-const search = ref('')
-const filter = ref('all')
 const toast = ref('')
 const locale = ref('zh-CN')
-const currentView = ref(resolveHashView())
 const drawerOpen = ref(false)
 const isMobile = ref(false)
 let toastTimer = null
 
 const copy = computed(() => translations[locale.value] ?? translations['zh-CN'])
-
+const currentView = computed(() => (viewIDs.includes(String(route.name)) ? String(route.name) : 'overview'))
 const navItems = computed(() =>
   viewIDs.map((id) => ({
     id,
@@ -328,7 +338,6 @@ const navItems = computed(() =>
   })),
 )
 const activeViewLabel = computed(() => copy.value.sidebar.viewLabels[currentView.value]?.title || copy.value.pageTitle)
-
 const allPlugins = computed(() => marketIndex.value?.plugins ?? [])
 const previewPlugins = computed(() => allPlugins.value.slice(0, 3))
 const marketRepoURL = computed(() => 'https://github.com/qqqyyyhhh8-del/discord-bot-market')
@@ -345,7 +354,6 @@ const stats = computed(() => {
     tags: tags.size,
   }
 })
-
 const rawIndexUrl = computed(() => {
   const explicit = marketIndex.value?.index_url?.trim()
   if (explicit) {
@@ -353,10 +361,8 @@ const rawIndexUrl = computed(() => {
   }
   return `${window.location.origin}${import.meta.env.BASE_URL}index.json`
 })
-
 const submitUrl = computed(() => marketIndex.value?.submit_url?.trim() ?? '')
 const siteUrl = computed(() => marketIndex.value?.site_url?.trim() ?? '')
-
 const updatedLabel = computed(() => {
   const value = marketIndex.value?.updated_at?.trim()
   if (!value) {
@@ -371,49 +377,17 @@ const updatedLabel = computed(() => {
     timeStyle: 'short',
   }).format(parsed)
 })
-
 const heroTitle = computed(() => {
   if (locale.value === 'zh-CN') {
     return localizedIndexValue(marketIndex.value, 'title') || copy.value.hero.titleFallback
   }
   return marketIndex.value?.title?.trim() || copy.value.hero.titleFallback
 })
-
 const heroDescription = computed(() => {
   if (locale.value === 'zh-CN') {
     return localizedIndexValue(marketIndex.value, 'description') || copy.value.hero.descriptionFallback
   }
   return marketIndex.value?.description?.trim() || copy.value.hero.descriptionFallback
-})
-
-const filteredPlugins = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-  return allPlugins.value.filter((plugin) => {
-    if (filter.value === 'official' && !plugin.official) {
-      return false
-    }
-    if (filter.value === 'verified' && !plugin.verified) {
-      return false
-    }
-    if (!keyword) {
-      return true
-    }
-    const haystack = [
-      plugin.id,
-      plugin.name,
-      plugin.name_zh,
-      plugin.description,
-      plugin.description_zh,
-      plugin.author,
-      plugin.min_host_version,
-      ...(plugin.tags ?? []),
-      ...(plugin.capabilities ?? []),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-    return haystack.includes(keyword)
-  })
 })
 
 function localizedIndexValue(target, key) {
@@ -424,32 +398,20 @@ function localizedIndexValue(target, key) {
   return typeof localized === 'string' ? localized.trim() : ''
 }
 
-function resolveHashView() {
-  if (typeof window === 'undefined') {
-    return 'overview'
-  }
-  const hash = window.location.hash.replace(/^#/, '').trim()
-  return viewIDs.includes(hash) ? hash : 'overview'
-}
-
 function syncDocumentMeta() {
   if (typeof document === 'undefined') {
     return
   }
   document.documentElement.lang = locale.value === 'zh-CN' ? 'zh-CN' : 'en'
-  const viewTitle = copy.value.sidebar.viewLabels[currentView.value]?.title || copy.value.pageTitle
-  document.title = `${copy.value.siteName} · ${viewTitle}`
+  document.title = `${copy.value.siteName} · ${activeViewLabel.value}`
 }
 
 function setView(viewID) {
   if (!viewIDs.includes(viewID)) {
     return
   }
-  currentView.value = viewID
   drawerOpen.value = false
-  if (typeof window !== 'undefined' && window.location.hash !== `#${viewID}`) {
-    window.location.hash = viewID
-  }
+  router.push({ name: viewID })
 }
 
 function setLocale(nextLocale) {
@@ -457,10 +419,6 @@ function setLocale(nextLocale) {
     return
   }
   locale.value = nextLocale
-}
-
-function handleHashChange() {
-  currentView.value = resolveHashView()
 }
 
 function syncViewportState() {
@@ -498,9 +456,7 @@ async function copyInstallPayload(plugin) {
     `ref=${plugin.ref || 'main'}`,
     `path=${plugin.path || ''}`,
   ]
-  const name = locale.value === 'zh-CN'
-    ? plugin.name_zh || plugin.name || plugin.id
-    : plugin.name || plugin.id
+  const name = locale.value === 'zh-CN' ? plugin.name_zh || plugin.name || plugin.id : plugin.name || plugin.id
   try {
     await navigator.clipboard.writeText(lines.join('\n'))
     showToast(copy.value.toast.copySuccess(name))
@@ -528,6 +484,21 @@ async function loadMarketIndex() {
   }
 }
 
+provide('siteContext', {
+  copy,
+  locale,
+  allPlugins,
+  previewPlugins,
+  loading,
+  loadError,
+  rawIndexUrl,
+  submitUrl,
+  siteUrl,
+  updatedLabel,
+  marketRepoURL,
+  copyInstallPayload,
+})
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     const storedLocale = window.localStorage.getItem('market-locale')
@@ -535,13 +506,8 @@ onMounted(() => {
       locale.value = storedLocale
     }
     syncViewportState()
-    if (!window.location.hash) {
-      window.location.hash = 'overview'
-    }
-    window.addEventListener('hashchange', handleHashChange)
     window.addEventListener('resize', syncViewportState)
   }
-  currentView.value = resolveHashView()
   syncDocumentMeta()
   loadMarketIndex()
 })
@@ -573,7 +539,6 @@ onBeforeUnmount(() => {
     window.clearTimeout(toastTimer)
   }
   if (typeof window !== 'undefined') {
-    window.removeEventListener('hashchange', handleHashChange)
     window.removeEventListener('resize', syncViewportState)
   }
   if (typeof document !== 'undefined') {
@@ -584,12 +549,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="mobile-topbar">
-    <button
-      type="button"
-      class="mobile-topbar__menu"
-      :aria-label="copy.sidebar.openMenu"
-      @click="openDrawer"
-    >
+    <button type="button" class="mobile-topbar__menu" :aria-label="copy.sidebar.openMenu" @click="openDrawer">
       <span></span>
       <span></span>
       <span></span>
@@ -610,7 +570,7 @@ onBeforeUnmount(() => {
     ></button>
   </transition>
 
-  <div class="page-shell page-shell--sidebar" :class="{ 'page-shell--drawer-open': drawerOpen }">
+  <div class="page-shell page-shell--sidebar">
     <div class="sidebar-rail" :class="{ 'sidebar-rail--open': drawerOpen }">
       <SidebarNav
         :copy="copy"
@@ -641,161 +601,7 @@ onBeforeUnmount(() => {
       />
 
       <main class="content-stack">
-        <section v-if="currentView === 'overview'" class="page-stack">
-          <section class="section-intro">
-            <p class="eyebrow">{{ copy.overview.eyebrow }}</p>
-            <h2>{{ copy.overview.title }}</h2>
-            <p class="section-intro__text">{{ copy.overview.body }}</p>
-          </section>
-
-          <div class="page-grid page-grid--two">
-            <section class="side-card side-card--inverse">
-              <p class="eyebrow">{{ copy.overview.sections.interopEyebrow }}</p>
-              <h2>{{ copy.overview.sections.interopTitle }}</h2>
-              <p class="side-card__text">{{ copy.overview.sections.interopBody }}</p>
-              <div class="code-block">
-                <code>PLUGIN_MARKET_INDEX_URL={{ rawIndexUrl }}</code>
-              </div>
-            </section>
-
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.overview.sections.structureEyebrow }}</p>
-              <h2>{{ copy.overview.sections.structureTitle }}</h2>
-              <p class="side-card__text">{{ copy.overview.sections.structureBody }}</p>
-            </section>
-
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.overview.sections.previewEyebrow }}</p>
-              <h2>{{ copy.overview.sections.previewTitle }}</h2>
-              <p class="side-card__text">{{ copy.overview.sections.previewBody }}</p>
-              <ul class="bullet-list bullet-list--tight">
-                <li v-for="plugin in previewPlugins" :key="plugin.id">
-                  {{ locale === 'zh-CN' ? (plugin.name_zh || plugin.name || plugin.id) : (plugin.name || plugin.id) }}
-                </li>
-              </ul>
-              <p class="side-card__text side-card__text--minor">{{ copy.overview.sections.previewMore }}</p>
-            </section>
-
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.overview.sections.trustEyebrow }}</p>
-              <h2>{{ copy.overview.sections.trustTitle }}</h2>
-              <p class="side-card__text">{{ copy.overview.sections.trustBody }}</p>
-            </section>
-          </div>
-        </section>
-
-        <section v-else-if="currentView === 'plugins'" class="page-stack">
-          <MarketplaceToolbar
-            v-model:search="search"
-            v-model:filter="filter"
-            :results="filteredPlugins.length"
-            :total="allPlugins.length"
-            :copy="copy.toolbar"
-          />
-          <PluginGrid
-            :plugins="filteredPlugins"
-            :loading="loading"
-            :load-error="loadError"
-            :copy="copy.grid"
-            :card-copy="copy.card"
-            :locale="locale"
-            @copy-install="copyInstallPayload"
-          />
-        </section>
-
-        <section v-else-if="currentView === 'integration'" class="page-stack">
-          <section class="section-intro">
-            <p class="eyebrow">{{ copy.integration.eyebrow }}</p>
-            <h2>{{ copy.integration.title }}</h2>
-            <p class="section-intro__text">{{ copy.integration.body }}</p>
-          </section>
-
-          <div class="page-grid page-grid--two">
-            <section class="side-card side-card--inverse">
-              <p class="eyebrow">{{ copy.integration.envTitle }}</p>
-              <h2>{{ copy.integration.envTitle }}</h2>
-              <p class="side-card__text">{{ copy.integration.envBody }}</p>
-              <div class="code-block">
-                <code>PLUGIN_MARKET_INDEX_URL={{ rawIndexUrl }}</code>
-              </div>
-              <div class="link-row">
-                <a class="ghost-link ghost-link--light" :href="rawIndexUrl" target="_blank" rel="noreferrer">
-                  {{ copy.integration.links.rawIndex }}
-                </a>
-                <a
-                  v-if="submitUrl"
-                  class="ghost-link ghost-link--light"
-                  :href="submitUrl"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {{ copy.integration.links.submit }}
-                </a>
-              </div>
-            </section>
-
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.integration.installTitle }}</p>
-              <h2>{{ copy.integration.installTitle }}</h2>
-              <ol class="steps-list">
-                <li v-for="step in copy.integration.installSteps" :key="step">{{ step }}</li>
-              </ol>
-            </section>
-
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.integration.limitsTitle }}</p>
-              <h2>{{ copy.integration.limitsTitle }}</h2>
-              <ul class="bullet-list">
-                <li v-for="item in copy.integration.limitsItems" :key="item">{{ item }}</li>
-              </ul>
-            </section>
-          </div>
-        </section>
-
-        <section v-else class="page-stack">
-          <section class="section-intro">
-            <p class="eyebrow">{{ copy.submit.eyebrow }}</p>
-            <h2>{{ copy.submit.title }}</h2>
-            <p class="section-intro__text">{{ copy.submit.body }}</p>
-          </section>
-
-          <div class="page-grid page-grid--two">
-            <section class="side-card">
-              <p class="eyebrow">{{ copy.submit.flowTitle }}</p>
-              <h2>{{ copy.submit.flowTitle }}</h2>
-              <ol class="steps-list">
-                <li v-for="step in copy.submit.flow" :key="step">{{ step }}</li>
-              </ol>
-            </section>
-
-            <section class="side-card side-card--inverse">
-              <p class="eyebrow">{{ copy.submit.rulesTitle }}</p>
-              <h2>{{ copy.submit.rulesTitle }}</h2>
-              <ul class="bullet-list bullet-list--light">
-                <li v-for="item in copy.submit.rules" :key="item">{{ item }}</li>
-              </ul>
-              <div class="link-row">
-                <a
-                  v-if="submitUrl"
-                  class="ghost-link ghost-link--light"
-                  :href="submitUrl"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {{ copy.submit.actions.submit }}
-                </a>
-                <a
-                  class="ghost-link ghost-link--light"
-                  :href="marketRepoURL"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {{ copy.submit.actions.repo }}
-                </a>
-              </div>
-            </section>
-          </div>
-        </section>
+        <RouterView />
       </main>
     </div>
 

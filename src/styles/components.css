@@ -517,6 +517,66 @@ h3 {
   margin-top: 8px;
 }
 
+.pagination-bar,
+.pagination-bar__pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pagination-bar {
+  justify-content: space-between;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--shadow);
+}
+
+.pagination-bar__button,
+.pagination-bar__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.pagination-bar__button:hover,
+.pagination-bar__page:hover {
+  transform: translateY(-1px);
+}
+
+.pagination-bar__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  transform: none;
+}
+
+.pagination-bar__page {
+  min-width: 42px;
+  padding: 0;
+}
+
+.pagination-bar__page--active {
+  background: var(--bg-inverse);
+  color: #fff;
+  border-color: transparent;
+}
+
+.pagination-bar__summary {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.84rem;
+}
+
 .bullet-list--tight {
   margin-top: 14px;
 }
@@ -559,5 +619,16 @@ h3 {
   .sidebar-close {
     width: 44px;
     height: 44px;
+  }
+
+  .pagination-bar {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .pagination-bar__button,
+  .pagination-bar__pages,
+  .pagination-bar__summary {
+    width: 100%;
   }
 }
