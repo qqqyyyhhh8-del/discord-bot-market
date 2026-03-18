@@ -34,6 +34,8 @@ const translations = {
       language: '语言',
       pages: '页面',
       links: '外链',
+      openMenu: '打开侧边栏',
+      closeMenu: '关闭侧边栏',
       rawIndex: '原始索引',
       siteHome: '站点主页',
       submit: '提交入口',
@@ -180,6 +182,8 @@ const translations = {
       language: 'Language',
       pages: 'Pages',
       links: 'Links',
+      openMenu: 'Open sidebar',
+      closeMenu: 'Close sidebar',
       rawIndex: 'Raw index',
       siteHome: 'Site home',
       submit: 'Submit form',
@@ -310,6 +314,8 @@ const filter = ref('all')
 const toast = ref('')
 const locale = ref('zh-CN')
 const currentView = ref(resolveHashView())
+const drawerOpen = ref(false)
+const isMobile = ref(false)
 let toastTimer = null
 
 const copy = computed(() => translations[locale.value] ?? translations['zh-CN'])
@@ -321,6 +327,7 @@ const navItems = computed(() =>
     note: copy.value.sidebar.viewLabels[id].note,
   })),
 )
+const activeViewLabel = computed(() => copy.value.sidebar.viewLabels[currentView.value]?.title || copy.value.pageTitle)
 
 const allPlugins = computed(() => marketIndex.value?.plugins ?? [])
 const previewPlugins = computed(() => allPlugins.value.slice(0, 3))
@@ -439,6 +446,7 @@ function setView(viewID) {
     return
   }
   currentView.value = viewID
+  drawerOpen.value = false
   if (typeof window !== 'undefined' && window.location.hash !== `#${viewID}`) {
     window.location.hash = viewID
   }
@@ -453,6 +461,24 @@ function setLocale(nextLocale) {
 
 function handleHashChange() {
   currentView.value = resolveHashView()
+}
+
+function syncViewportState() {
+  if (typeof window === 'undefined') {
+    return
+  }
+  isMobile.value = window.innerWidth <= 980
+  if (!isMobile.value) {
+    drawerOpen.value = false
+  }
+}
+
+function openDrawer() {
+  drawerOpen.value = true
+}
+
+function closeDrawer() {
+  drawerOpen.value = false
 }
 
 function showToast(message) {
@@ -508,10 +534,12 @@ onMounted(() => {
     if (translations[storedLocale]) {
       locale.value = storedLocale
     }
+    syncViewportState()
     if (!window.location.hash) {
       window.location.hash = 'overview'
     }
     window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('resize', syncViewportState)
   }
   currentView.value = resolveHashView()
   syncDocumentMeta()
@@ -529,30 +557,76 @@ watch(currentView, () => {
   syncDocumentMeta()
 })
 
+watch(drawerOpen, (value) => {
+  if (typeof document === 'undefined') {
+    return
+  }
+  if (value && isMobile.value) {
+    document.body.style.overflow = 'hidden'
+    return
+  }
+  document.body.style.overflow = ''
+})
+
 onBeforeUnmount(() => {
   if (toastTimer !== null) {
     window.clearTimeout(toastTimer)
   }
   if (typeof window !== 'undefined') {
     window.removeEventListener('hashchange', handleHashChange)
+    window.removeEventListener('resize', syncViewportState)
+  }
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = ''
   }
 })
 </script>
 
 <template>
-  <div class="page-shell page-shell--sidebar">
-    <SidebarNav
-      :copy="copy"
-      :locale="locale"
-      :nav-items="navItems"
-      :current-view="currentView"
-      :updated-label="updatedLabel"
-      :site-url="siteUrl"
-      :submit-url="submitUrl"
-      :raw-index-url="rawIndexUrl"
-      @set-view="setView"
-      @set-locale="setLocale"
-    />
+  <div class="mobile-topbar">
+    <button
+      type="button"
+      class="mobile-topbar__menu"
+      :aria-label="copy.sidebar.openMenu"
+      @click="openDrawer"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <div class="mobile-topbar__copy">
+      <p class="mobile-topbar__eyebrow">{{ copy.siteName }}</p>
+      <strong>{{ activeViewLabel }}</strong>
+    </div>
+  </div>
+
+  <transition name="drawer-fade">
+    <button
+      v-if="drawerOpen && isMobile"
+      type="button"
+      class="sidebar-backdrop"
+      :aria-label="copy.sidebar.closeMenu"
+      @click="closeDrawer"
+    ></button>
+  </transition>
+
+  <div class="page-shell page-shell--sidebar" :class="{ 'page-shell--drawer-open': drawerOpen }">
+    <div class="sidebar-rail" :class="{ 'sidebar-rail--open': drawerOpen }">
+      <SidebarNav
+        :copy="copy"
+        :locale="locale"
+        :nav-items="navItems"
+        :current-view="currentView"
+        :updated-label="updatedLabel"
+        :site-url="siteUrl"
+        :submit-url="submitUrl"
+        :raw-index-url="rawIndexUrl"
+        :show-close-button="isMobile"
+        @set-view="setView"
+        @set-locale="setLocale"
+        @close="closeDrawer"
+      />
+    </div>
 
     <div class="surface-shell">
       <MarketHeader

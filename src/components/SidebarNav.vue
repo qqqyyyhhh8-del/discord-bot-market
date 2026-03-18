@@ -32,16 +32,34 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  showCloseButton: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['set-view', 'set-locale'])
+const emit = defineEmits(['set-view', 'set-locale', 'close'])
 </script>
 
 <template>
   <aside class="sidebar-shell">
     <div class="sidebar-card">
-      <p class="eyebrow">{{ props.copy.sidebar.label }}</p>
-      <h1 class="sidebar-title">{{ props.copy.siteName }}</h1>
+      <div class="sidebar-head">
+        <div class="sidebar-head__copy">
+          <p class="eyebrow">{{ props.copy.sidebar.label }}</p>
+          <h1 class="sidebar-title">{{ props.copy.siteName }}</h1>
+        </div>
+        <button
+          v-if="props.showCloseButton"
+          type="button"
+          class="sidebar-close"
+          :aria-label="props.copy.sidebar.closeMenu"
+          @click="emit('close')"
+        >
+          <span></span>
+          <span></span>
+        </button>
+      </div>
 
       <section class="sidebar-group">
         <p class="sidebar-group__label">{{ props.copy.sidebar.language }}</p>
